@@ -106,4 +106,3 @@ HTML_APP = """
 </body>
 </html>
 """
-Render detectará el cambio en GitHub e intentará el despliegue de nuevo. Avísame qué sucede en la pestaña de Render.
