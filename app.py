@@ -1,6 +1,5 @@
 from flask import Flask, render_template_string, request, jsonify
 import google.generativeai as genai
-import wolframalpha
 import os
 
 app = Flask(__name__)
