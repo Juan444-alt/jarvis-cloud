@@ -5,7 +5,9 @@ import os
 
 app = Flask(__name__)
 
-# --- NOTA: LAS CLAVES SE INYECTAN EN RENDER, NO AQUÍ ---
+# --- NOTA: LAS CLAVES SON VARIABLES DE ENTORNO EN RENDER ---
+# El código las busca en las variables de entorno del servidor.
+
 def cerebro(texto):
     texto = texto.lower()
     
@@ -26,10 +28,11 @@ def cerebro(texto):
         genai.configure(api_key=API_KEY_GEMINI)
         model = genai.GenerativeModel('gemini-1.5-flash')
         chat = model.start_chat(history=[])
-        response = chat.send_message(texto)
+        response = model.generate_content(texto)
         return response.text
     except Exception as e:
-        return "Error de conexión neuronal. ¿Llave inválida o límite excedido?"
+        # En caso de error, no crashea, simplemente avisa
+        return "Error de conexión neuronal. No pude consultar la base de datos."
 
 # --- INTERFAZ MÓVIL (PWA) ---
 HTML_APP = """
