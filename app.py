@@ -1,38 +1,33 @@
 from flask import Flask, render_template_string, request, jsonify
 import google.generativeai as genai
-import wolframalpha
 import os
 
 app = Flask(__name__)
 
 # --- NOTA: LAS CLAVES SON VARIABLES DE ENTORNO EN RENDER ---
-# El código las busca en las variables de entorno del servidor.
+# El código busca las claves de forma segura en el servidor.
 
 def cerebro(texto):
     texto = texto.lower()
     
-    # Obtener claves de forma segura desde el servidor
+    # Obtener clave de Gemini de forma segura desde el servidor
     API_KEY_GEMINI = os.environ.get("GEMINI_API_KEY")
-    WOLFRAM_ID = os.environ.get("WOLFRAM_ID")
     
-    # 1. Wolfram Alpha (Ciencia)
-    if any(x in texto for x in ["cuánto es", "fórmula", "capital", "población", "distancia"]):
-        try:
-            client = wolframalpha.Client(WOLFRAM_ID)
-            res = client.query(texto)
-            return f"Dato confirmado: {next(res.results).text}"
-        except: pass
-
+    # 1. Respuestas rápidas de inicio
+    if "hola" in texto: return "Sistemas en línea. ¿En qué puedo ayudarle?"
+    if "quién eres" in texto: return "Soy J.A.R.V.I.S., un asistente de IA en la nube 24/7."
+    
     # 2. Gemini (Conversación)
     try:
         genai.configure(api_key=API_KEY_GEMINI)
         model = genai.GenerativeModel('gemini-1.5-flash')
-        chat = model.start_chat(history=[])
-        response = model.generate_content(texto)
+        
+        # Usamos una instancia de chat simple para evitar errores de historial en el servidor
+        response = model.generate_content(texto) 
         return response.text
     except Exception as e:
-        # En caso de error, no crashea, simplemente avisa
-        return "Error de conexión neuronal. No pude consultar la base de datos."
+        # Esto indica que la llave GEMINI es el problema final si llegamos aquí
+        return "Error crítico de la IA. Favor de revisar su clave GEMINI en las variables de Render."
 
 # --- INTERFAZ MÓVIL (PWA) ---
 HTML_APP = """
@@ -49,8 +44,9 @@ HTML_APP = """
         .reactor { width: 120px; height: 120px; border: 8px solid #00ffff; border-radius: 50%; margin: 20px auto; box-shadow: 0 0 30px #00ffff; animation: pulse 3s infinite ease-in-out; }
         @keyframes pulse { 0% { opacity: 0.8; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.8; transform: scale(0.95); } }
         #chat { flex: 2; overflow-y: auto; padding: 20px; text-align: left; background: #0a0a0a; }
-        .msg.jarvis { background: rgba(0, 255, 255, 0.1); color: #00ffff; border-left: 3px solid #00ffff;}
-        .msg.user { background: #222; color: #fff; margin-left: auto; text-align: right; }
+        .msg { margin-bottom: 10px; padding: 10px; border-radius: 10px; max-width: 80%; }
+        .jarvis { background: rgba(0, 255, 255, 0.1); color: #00ffff; align-self: flex-start; border-left: 3px solid #00ffff;}
+        .user { background: #222; color: #fff; margin-left: auto; text-align: right; }
         .controls { padding: 20px; display: flex; gap: 10px; background: #000; border-top: 1px solid #333; }
         input { flex: 1; padding: 15px; border-radius: 30px; border: 1px solid #333; background: #111; color: white; outline: none; }
     </style>
@@ -109,3 +105,16 @@ HTML_APP = """
 </body>
 </html>
 """
+
+@app.route('/')
+def home():
+    return render_template_string(HTML_APP)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_msg = request.json.get('msg', '')
+    respuesta = cerebro(user_msg)
+    return jsonify({"reply": respuesta})
+
+if __name__ == '__main__':
+    pass # Render usa Gunicorn para el arranque
